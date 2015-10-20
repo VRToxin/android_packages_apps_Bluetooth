@@ -44,7 +44,7 @@ public class BluetoothMapAppObserver{
     private static final String TAG = "BluetoothMapAppObserver";
 
     private static final boolean D = BluetoothMapService.DEBUG;
-    private static final boolean V = Log.isLoggable(BluetoothMapService.LOG_TAG, Log.VERBOSE);
+    private static final boolean V = BluetoothMapService.VERBOSE;
     /*  */
     private LinkedHashMap<BluetoothMapAccountItem, ArrayList<BluetoothMapAccountItem>> mFullList;
     private LinkedHashMap<String,ContentObserver> mObserverMap =
@@ -53,14 +53,14 @@ public class BluetoothMapAppObserver{
     private Context mContext;
     private BroadcastReceiver mReceiver;
     private PackageManager mPackageManager = null;
-    BluetoothMapAccountEmailLoader mLoader;
+    BluetoothMapAccountLoader mLoader;
     BluetoothMapService mMapService = null;
 
     public BluetoothMapAppObserver(final Context context, BluetoothMapService mapService) {
         mContext    = context;
         mMapService = mapService;
         mResolver   = context.getContentResolver();
-        mLoader     = new BluetoothMapAccountEmailLoader(mContext);
+        mLoader     = new BluetoothMapAccountLoader(mContext);
         mFullList   = mLoader.parsePackages(false); /* Get the current list of apps */
         createReceiver();
         initObservers();

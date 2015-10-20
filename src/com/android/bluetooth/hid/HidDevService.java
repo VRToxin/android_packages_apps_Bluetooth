@@ -43,8 +43,7 @@ import java.util.NoSuchElementException;
 /** @hide */
 public class HidDevService extends ProfileService {
 
-    public static final String LOG_TAG = "BluetoothHidDev";
-    private static boolean DBG = Log.isLoggable(LOG_TAG, Log.DEBUG);
+    private static final boolean DBG = true;
 
     private static final String TAG = HidDevService.class.getSimpleName();
 
@@ -428,9 +427,7 @@ public class HidDevService extends ProfileService {
 
     @Override
     protected boolean start() {
-        if(!DBG)
-            DBG = Log.isLoggable(LOG_TAG, Log.DEBUG);
-        if (DBG) log("Start Bluetooth HidDevService");
+        if (DBG) Log.d(TAG, "start()");
 
         initNative();
         mNativeAvailable = true;
@@ -440,7 +437,7 @@ public class HidDevService extends ProfileService {
 
     @Override
     protected boolean stop() {
-        if (DBG) log("Stopping Bluetooth HidDevService");
+        if (DBG) Log.d(TAG, "stop()");
 
         return true;
     }

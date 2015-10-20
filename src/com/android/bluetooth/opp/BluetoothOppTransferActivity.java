@@ -68,7 +68,8 @@ public class BluetoothOppTransferActivity extends AlertActivity implements
         DialogInterface.OnClickListener {
     private static final String TAG = "BluetoothOppTransferActivity";
     private static final boolean D = Constants.DEBUG;
-    private static final boolean V = Log.isLoggable(Constants.TAG, Log.VERBOSE);
+    private static final boolean V = Constants.VERBOSE;
+
     private UpdateHandler mHandler;
     private final int GENERATE_SEND_FILE_INFO_OK = 1;
 

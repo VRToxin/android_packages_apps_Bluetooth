@@ -45,10 +45,9 @@ public class SapService extends ProfileService {
     private static final String SDP_SAP_SERVICE_NAME = "SIM Access";
     private static final int SDP_SAP_VERSION = 0x0102;
     private static final String TAG = "SapService";
-    public static final String LOG_TAG = "BluetoothSap";
+    public static final boolean DEBUG = true;
+    public static final boolean VERBOSE = true;
     public static final boolean PTS_TEST = false;
-    public static boolean DEBUG = Log.isLoggable(LOG_TAG, Log.DEBUG);
-    public static boolean VERBOSE = Log.isLoggable(LOG_TAG, Log.VERBOSE);
 
     /* Message ID's */
     private static final int START_LISTENER = 1;
@@ -150,7 +149,7 @@ public class SapService extends ProfileService {
                         BluetoothAdapter.SOCKET_CHANNEL_AUTO_STATIC_NO_SDP, true, true);
                 if (mSdpHandle >= 0) {
                     SdpManager.getDefaultManager().removeSdpRecord(mSdpHandle);
-                    if (DEBUG) Log.d(TAG, "Removing SDP record");
+                    if (VERBOSE) Log.d(TAG, "Removing SDP record");
                 }
                 mSdpHandle = SdpManager.getDefaultManager().createSapsRecord(SDP_SAP_SERVICE_NAME,
                         mServerSocket.getChannel(), SDP_SAP_VERSION);
@@ -419,7 +418,7 @@ public class SapService extends ProfileService {
                     // handled elsewhere
                     break;
                 case MSG_ACQUIRE_WAKE_LOCK:
-                    if (DEBUG) Log.d(TAG, "Acquire Wake Lock request message");
+                    if (VERBOSE)Log.i(TAG, "Acquire Wake Lock request message");
                     if (mWakeLock == null) {
                         PowerManager pm = (PowerManager)getSystemService(
                                           Context.POWER_SERVICE);
@@ -429,17 +428,17 @@ public class SapService extends ProfileService {
                     }
                     if (!mWakeLock.isHeld()) {
                         mWakeLock.acquire();
-                        if (DEBUG) Log.d(TAG, "  Acquired Wake Lock by message");
+                        if (DEBUG)Log.i(TAG, "  Acquired Wake Lock by message");
                     }
                     mSessionStatusHandler.removeMessages(MSG_RELEASE_WAKE_LOCK);
                     mSessionStatusHandler.sendMessageDelayed(mSessionStatusHandler
                       .obtainMessage(MSG_RELEASE_WAKE_LOCK), RELEASE_WAKE_LOCK_DELAY);
                     break;
                 case MSG_RELEASE_WAKE_LOCK:
-                    if (VERBOSE) Log.v(TAG, "Release Wake Lock request message");
+                    if (VERBOSE)Log.i(TAG, "Release Wake Lock request message");
                     if (mWakeLock != null) {
                         mWakeLock.release();
-                        if (DEBUG) Log.d(TAG, "  Released Wake Lock by message");
+                        if (DEBUG) Log.i(TAG, "  Released Wake Lock by message");
                     }
                     break;
                 case SHUTDOWN:
@@ -569,11 +568,7 @@ public class SapService extends ProfileService {
 
     @Override
     protected boolean start() {
-        if(!DEBUG)
-            DEBUG = Log.isLoggable(LOG_TAG, Log.DEBUG);
-        if(!VERBOSE)
-            VERBOSE = Log.isLoggable(LOG_TAG, Log.VERBOSE);
-        if (VERBOSE) Log.v(TAG, "start SAPService");
+        Log.v(TAG, "start()");
         IntentFilter filter = new IntentFilter();
         filter.addAction(BluetoothDevice.ACTION_CONNECTION_ACCESS_REPLY);
         filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
@@ -595,7 +590,7 @@ public class SapService extends ProfileService {
 
     @Override
     protected boolean stop() {
-        if (VERBOSE) Log.v(TAG, "Stoping SAPService");
+        Log.v(TAG, "stop()");
         try {
             unregisterReceiver(mSapReceiver);
         } catch (Exception e) {
@@ -692,7 +687,7 @@ public class SapService extends ProfileService {
                                   .obtainMessage(START_LISTENER));
                 }
             } else if (action.equals(BluetoothDevice.ACTION_CONNECTION_ACCESS_REPLY)) {
-                if(DEBUG) Log.d(TAG, " - Received BluetoothDevice.ACTION_CONNECTION_ACCESS_REPLY");
+                Log.v(TAG, " - Received BluetoothDevice.ACTION_CONNECTION_ACCESS_REPLY");
                 if (!mIsWaitingAuthorization) {
                     // this reply is not for us
                     return;
@@ -784,7 +779,7 @@ public class SapService extends ProfileService {
         }
 
         SapBinder(SapService service) {
-            if(VERBOSE) Log.v(TAG, "SapBinder()");
+            Log.v(TAG, "SapBinder()");
             mService = service;
         }
 
@@ -794,22 +789,22 @@ public class SapService extends ProfileService {
         }
 
         public int getState() {
-            if(DEBUG) Log.d(TAG, "getState()");
+            Log.v(TAG, "getState()");
             SapService service = getService();
             if (service == null) return BluetoothSap.STATE_DISCONNECTED;
             return getService().getState();
         }
 
         public BluetoothDevice getClient() {
-            if (DEBUG) Log.d(TAG, "getClient()");
+            Log.v(TAG, "getClient()");
             SapService service = getService();
             if (service == null) return null;
-            if(DEBUG) Log.d(TAG, "getClient() - returning " + service.getRemoteDevice());
+            Log.v(TAG, "getClient() - returning " + service.getRemoteDevice());
             return service.getRemoteDevice();
         }
 
         public boolean isConnected(BluetoothDevice device) {
-            if(VERBOSE) Log.v(TAG, "isConnected()");
+            Log.v(TAG, "isConnected()");
             SapService service = getService();
             if (service == null) return false;
             return (service.getState() == BluetoothSap.STATE_CONNECTED
@@ -817,35 +812,35 @@ public class SapService extends ProfileService {
         }
 
         public boolean connect(BluetoothDevice device) {
-            if(VERBOSE) Log.v(TAG, "connect()");
+            Log.v(TAG, "connect()");
             SapService service = getService();
             if (service == null) return false;
             return false;
         }
 
         public boolean disconnect(BluetoothDevice device) {
-            if(VERBOSE) Log.v(TAG, "disconnect()");
+            Log.v(TAG, "disconnect()");
             SapService service = getService();
             if (service == null) return false;
             return service.disconnect(device);
         }
 
         public List<BluetoothDevice> getConnectedDevices() {
-            if(VERBOSE) Log.v(TAG, "getConnectedDevices()");
+            Log.v(TAG, "getConnectedDevices()");
             SapService service = getService();
             if (service == null) return new ArrayList<BluetoothDevice>(0);
             return service.getConnectedDevices();
         }
 
         public List<BluetoothDevice> getDevicesMatchingConnectionStates(int[] states) {
-            if(VERBOSE) Log.v(TAG, "getDevicesMatchingConnectionStates()");
+            Log.v(TAG, "getDevicesMatchingConnectionStates()");
             SapService service = getService();
             if (service == null) return new ArrayList<BluetoothDevice>(0);
             return service.getDevicesMatchingConnectionStates(states);
         }
 
         public int getConnectionState(BluetoothDevice device) {
-            if(VERBOSE) Log.v(TAG, "getConnectionState()");
+            Log.v(TAG, "getConnectionState()");
             SapService service = getService();
             if (service == null) return BluetoothProfile.STATE_DISCONNECTED;
             return service.getConnectionState(device);

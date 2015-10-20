@@ -59,8 +59,7 @@ import java.util.Map;
  */
 public class PanService extends ProfileService {
     private static final String TAG = "PanService";
-    public static final String LOG_TAG = "BluetoothPan";
-    private static boolean DBG = Log.isLoggable(LOG_TAG, Log.DEBUG);
+    private static final boolean DBG = false;
 
     private static final String BLUETOOTH_IFACE_ADDR_START= "192.168.44.1";
     private static final int BLUETOOTH_MAX_PAN_CONNECTIONS = 5;
@@ -94,9 +93,6 @@ public class PanService extends ProfileService {
     }
 
     protected boolean start() {
-        if(!DBG)
-            DBG = Log.isLoggable(LOG_TAG, Log.DEBUG);
-        if(DBG) Log.d(TAG, "start PANService ");
         mPanDevices = new HashMap<BluetoothDevice, BluetoothPanDevice>();
         mBluetoothIfaceAddresses = new ArrayList<String>();
         try {
@@ -428,22 +424,21 @@ public class PanService extends ProfileService {
         // changes the state to STATE_DISCONNECTING. All future calls to BluetoothPan#connect
         // will fail until the caller explicitly calls BluetoothPan#disconnect.
         if (prevState == BluetoothProfile.STATE_DISCONNECTED && state == BluetoothProfile.STATE_DISCONNECTING) {
-            Log.i(TAG, "Ignoring state change from " + prevState + " to " + state);
+            Log.d(TAG, "Ignoring state change from " + prevState + " to " + state);
             return;
         }
 
-        if(DBG) Log.d(TAG, "handlePanDeviceStateChange preState: " + prevState + " state: "
-                + state);
+        Log.d(TAG, "handlePanDeviceStateChange preState: " + prevState + " state: " + state);
         if (prevState == state) return;
         if (remote_role == BluetoothPan.LOCAL_PANU_ROLE) {
             if (state == BluetoothProfile.STATE_CONNECTED) {
                 if((!mTetherOn)||(local_role == BluetoothPan.LOCAL_PANU_ROLE)){
-                    if(DBG) Log.d(TAG, "handlePanDeviceStateChange BT tethering is off/Local role"
-                            + " is PANU drop the connection");
+                    Log.d(TAG,"handlePanDeviceStateChange BT tethering is off/Local role is PANU "+
+                              "drop the connection");
                     disconnectPanNative(Utils.getByteAddress(device));
                     return;
                 }
-                if(DBG) Log.d(TAG, "handlePanDeviceStateChange LOCAL_NAP_ROLE:REMOTE_PANU_ROLE");
+                Log.d(TAG, "handlePanDeviceStateChange LOCAL_NAP_ROLE:REMOTE_PANU_ROLE");
                 ifaceAddr = enableTethering(iface);
                 if (ifaceAddr == null) Log.e(TAG, "Error seting up tether interface");
 
@@ -455,8 +450,8 @@ public class PanService extends ProfileService {
             }
         } else if (mNetworkFactory != null) {
             // PANU Role = reverse Tether
-            if(DBG) Log.d(TAG, "handlePanDeviceStateChange LOCAL_PANU_ROLE:REMOTE_NAP_ROLE state = "
-                    + state + ", prevState = " + prevState);
+            Log.d(TAG, "handlePanDeviceStateChange LOCAL_PANU_ROLE:REMOTE_NAP_ROLE state = " +
+                    state + ", prevState = " + prevState);
             if (state == BluetoothProfile.STATE_CONNECTED) {
                 mNetworkFactory.startReverseTether(iface);
            } else if (state == BluetoothProfile.STATE_DISCONNECTED &&
@@ -479,7 +474,7 @@ public class PanService extends ProfileService {
         /* Notifying the connection state change of the profile before sending the intent for
            connection state change, as it was causing a race condition, with the UI not being
            updated with the correct connection state. */
-        if(DBG) Log.d(TAG, "Pan Device state : device: " + device + " State:" +
+        Log.d(TAG, "Pan Device state : device: " + device + " State:" +
                        prevState + "->" + state);
         notifyProfileConnectionStateChanged(device, BluetoothProfile.PAN, state, prevState);
         Intent intent = new Intent(BluetoothPan.ACTION_CONNECTION_STATE_CHANGED);

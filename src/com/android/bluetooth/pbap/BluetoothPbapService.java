@@ -70,7 +70,6 @@ import javax.obex.ServerSession;
 
 public class BluetoothPbapService extends Service {
     private static final String TAG = "BluetoothPbapService";
-    public static final String LOG_TAG = "BluetoothPbap";
 
     /**
      * To enable PBAP DEBUG/VERBOSE logging - run below cmd in adb shell, and
@@ -81,7 +80,7 @@ public class BluetoothPbapService extends Service {
 
     public static final boolean DEBUG = true;
 
-    public static boolean VERBOSE = Log.isLoggable(LOG_TAG, Log.VERBOSE);
+    public static final boolean VERBOSE = false;
 
     /**
      * Intent indicating incoming obex authentication request which is from
@@ -196,7 +195,8 @@ public class BluetoothPbapService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        if(VERBOSE) Log.v(TAG, "Pbap Service onCreate");
+        if (VERBOSE) Log.v(TAG, "Pbap Service onCreate");
+
         mInterrupted = false;
         mAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -237,7 +237,7 @@ public class BluetoothPbapService extends Service {
     private void parseIntent(final Intent intent) {
         String action = intent.getStringExtra("action");
         if (action == null) return;             // Nothing to do
-        if (DEBUG) Log.v(TAG, "action: " + action);
+        if (VERBOSE) Log.v(TAG, "action: " + action);
 
         int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
         if (VERBOSE) Log.v(TAG, "state: " + state);
@@ -354,8 +354,6 @@ public class BluetoothPbapService extends Service {
     }
 
     private void startRfcommSocketListener() {
-        if(!VERBOSE)
-            VERBOSE = Log.isLoggable(LOG_TAG, Log.VERBOSE);
         if (VERBOSE) Log.v(TAG, "Pbap Service startRfcommSocketListener");
 
         if (mAcceptThread == null) {
