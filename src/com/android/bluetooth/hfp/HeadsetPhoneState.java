@@ -50,6 +50,12 @@ class HeadsetPhoneState {
     // Number of held (background) calls
     private int mNumHeld = 0;
 
+    // Phone Number
+    private String mNumber;
+
+    // Type of Phone Number
+    private int mType = 0;
+
     // HFP 1.6 CIND signal
     private int mSignal = 0;
 
@@ -124,18 +130,30 @@ class HeadsetPhoneState {
             if (SubscriptionManager.isValidSubscriptionId(subId)) {
                 mPhoneStateListener = getPhoneStateListener(subId);
 
-                mTelephonyManager.listen(mPhoneStateListener,
+                try {
+                    mTelephonyManager.listen(mPhoneStateListener,
                                          PhoneStateListener.LISTEN_SERVICE_STATE |
                                          PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
-                mListening = true;
+                    mListening = true;
+                } catch (NullPointerException npe) {
+                    // Handle case where Telephoneymanager crashes
+                    // and context becomes NULL
+                    Log.e(TAG, "NullPointerException for Telephonymanager while startListen", npe);
+                }
+
             }
         }
     }
 
     private void stopListenForPhoneState() {
         if (mListening) {
-
-            mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+            try {
+                mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+            } catch (NullPointerException npe) {
+                // Handle case where Telephoneymanager crashes
+                // and context becomes NULL
+                Log.e(TAG, "NullPointerException for Telephonymanager while stopListen", npe);
+            }
             mListening = false;
         }
     }
@@ -166,6 +184,23 @@ class HeadsetPhoneState {
 
     void setNumHeldCall(int numHeldCall) {
         mNumHeld = numHeldCall;
+    }
+
+    void setNumber(String mNumberCall ) {
+        mNumber = mNumberCall;
+    }
+
+    String getNumber()
+    {
+        return mNumber;
+    }
+
+    void setType(int mTypeCall) {
+        mType = mTypeCall;
+    }
+
+    int getType() {
+        return mType;
     }
 
     int getSignal() {

@@ -55,7 +55,7 @@ public class BluetoothOppSendFileInfo {
 
     private static final boolean D = Constants.DEBUG;
 
-    private static final boolean V = Constants.VERBOSE;
+    private static final boolean V = Log.isLoggable(Constants.TAG, Log.VERBOSE);
 
     /** Reusable SendFileInfo for error status. */
     static final BluetoothOppSendFileInfo SEND_FILE_INFO_ERROR = new BluetoothOppSendFileInfo(
@@ -117,6 +117,11 @@ public class BluetoothOppSendFileInfo {
             } catch (SQLiteException e) {
                 // some content providers don't support the DISPLAY_NAME or SIZE columns
                 metadataCursor = null;
+            } catch (SecurityException e) {
+                metadataCursor = null;
+                fileName = uri.getLastPathSegment();
+                Log.e(TAG, "generateFileInfo: " + e);
+                return new BluetoothOppSendFileInfo(fileName, contentType, length, null, 0);
             }
             if (metadataCursor != null) {
                 try {
@@ -170,12 +175,20 @@ public class BluetoothOppSendFileInfo {
                 }
             } catch (FileNotFoundException e) {
                 // Ignore
+            } catch (SecurityException e) {
+                Log.e(TAG, "gnrtFileInfo: openAssetFD:  " + e);
+                Log.e(TAG, "gnrtFileInfo: Close transfer " );
+                return SEND_FILE_INFO_ERROR;
             }
         }
         if (is == null) {
             try {
                 is = (FileInputStream) contentResolver.openInputStream(uri);
             } catch (FileNotFoundException e) {
+                return SEND_FILE_INFO_ERROR;
+            } catch (SecurityException e) {
+                Log.e(TAG, "OpenInputStrm: generateFileInfo: " + e);
+                Log.e(TAG, "gnrtFileInfo: Close transfer " );
                 return SEND_FILE_INFO_ERROR;
             }
         }

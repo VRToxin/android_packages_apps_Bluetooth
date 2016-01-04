@@ -70,6 +70,7 @@ import javax.obex.ServerSession;
 
 public class BluetoothPbapService extends Service {
     private static final String TAG = "BluetoothPbapService";
+    public static final String LOG_TAG = "BluetoothPbap";
 
     /**
      * To enable PBAP DEBUG/VERBOSE logging - run below cmd in adb shell, and
@@ -80,7 +81,7 @@ public class BluetoothPbapService extends Service {
 
     public static final boolean DEBUG = true;
 
-    public static final boolean VERBOSE = false;
+    public static boolean VERBOSE = Log.isLoggable(LOG_TAG, Log.VERBOSE);
 
     /**
      * Intent indicating incoming obex authentication request which is from
@@ -195,10 +196,14 @@ public class BluetoothPbapService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        if (VERBOSE) Log.v(TAG, "Pbap Service onCreate");
-
+        if(VERBOSE) Log.v(TAG, "Pbap Service onCreate");
         mInterrupted = false;
         mAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        if (!Utils.checkCaller()) {
+            Log.w(TAG, "onCreate received for non-active user, ignoring");
+            return;
+        }
 
         if (!mHasStarted) {
             mHasStarted = true;
@@ -237,7 +242,7 @@ public class BluetoothPbapService extends Service {
     private void parseIntent(final Intent intent) {
         String action = intent.getStringExtra("action");
         if (action == null) return;             // Nothing to do
-        if (VERBOSE) Log.v(TAG, "action: " + action);
+        if (DEBUG) Log.v(TAG, "action: " + action);
 
         int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
         if (VERBOSE) Log.v(TAG, "state: " + state);
@@ -354,6 +359,8 @@ public class BluetoothPbapService extends Service {
     }
 
     private void startRfcommSocketListener() {
+        if(!VERBOSE)
+            VERBOSE = Log.isLoggable(LOG_TAG, Log.VERBOSE);
         if (VERBOSE) Log.v(TAG, "Pbap Service startRfcommSocketListener");
 
         if (mAcceptThread == null) {
@@ -754,8 +761,8 @@ public class BluetoothPbapService extends Service {
             int prevState = mState;
             mState = state;
             Intent intent = new Intent(BluetoothPbap.PBAP_STATE_CHANGED_ACTION);
-            intent.putExtra(BluetoothPbap.PBAP_PREVIOUS_STATE, prevState);
-            intent.putExtra(BluetoothPbap.PBAP_STATE, mState);
+            intent.putExtra(BluetoothProfile.EXTRA_PREVIOUS_STATE, prevState);
+            intent.putExtra(BluetoothProfile.EXTRA_STATE, mState);
             intent.putExtra(BluetoothDevice.EXTRA_DEVICE, mRemoteDevice);
             sendBroadcast(intent, BLUETOOTH_PERM);
             AdapterService s = AdapterService.getAdapterService();

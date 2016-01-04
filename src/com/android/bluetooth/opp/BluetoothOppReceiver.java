@@ -42,11 +42,13 @@ import android.content.BroadcastReceiver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.sqlite.SQLiteException;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
+import com.android.bluetooth.Utils;
 
 /**
  * Receives and handles: system broadcasts; Intents from other applications;
@@ -55,12 +57,16 @@ import android.widget.Toast;
 public class BluetoothOppReceiver extends BroadcastReceiver {
     private static final String TAG = "BluetoothOppReceiver";
     private static final boolean D = Constants.DEBUG;
-    private static final boolean V = Constants.VERBOSE;
+    private static final boolean V = Log.isLoggable(Constants.TAG, Log.VERBOSE);
 
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
 
+        if (!Utils.checkCaller()) {
+            Log.w(TAG, action + " received for non-active user, ignoring!!");
+            return;
+        }
 
         if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
             if (BluetoothAdapter.STATE_ON == intent.getIntExtra(
@@ -89,6 +95,10 @@ public class BluetoothOppReceiver extends BroadcastReceiver {
                     }
                 }
             }
+        } else if (action.equals(BluetoothDevicePicker.ACTION_DEVICE_NOT_SELECTED)) {
+            if (V) Log.v(TAG, "ACTION_DEVICE_NOT_SELECTED");
+            BluetoothOppManager mOppManager = BluetoothOppManager.getInstance(context);
+            mOppManager.cleanUpSendingFileInfo();
         } else if (action.equals(BluetoothDevicePicker.ACTION_DEVICE_SELECTED)) {
             BluetoothOppManager mOppManager = BluetoothOppManager.getInstance(context);
 
@@ -100,7 +110,7 @@ public class BluetoothOppReceiver extends BroadcastReceiver {
             mOppManager.startTransfer(remoteDevice);
 
             // Display toast message
-            String deviceName = mOppManager.getDeviceName(remoteDevice);
+            String deviceName = remoteDevice.getName();
             String toastMsg;
             int batchSize = mOppManager.getBatchSize();
             if (mOppManager.mMultipleFlag) {
@@ -191,8 +201,14 @@ public class BluetoothOppReceiver extends BroadcastReceiver {
             context.startActivity(in);
         } else if (action.equals(Constants.ACTION_HIDE)) {
             if (V) Log.v(TAG, "Receiver hide for " + intent.getData());
-            Cursor cursor = context.getContentResolver().query(intent.getData(), null, null, null,
-                    null);
+            Cursor cursor;
+            try {
+                cursor = context.getContentResolver().query(intent.getData(), null, null, null,
+                         null);
+            } catch (SQLiteException e) {
+                cursor = null;
+                Log.e(TAG, "SQLite exception: " + e);
+            }
             if (cursor != null) {
                 if (cursor.moveToFirst()) {
                     int statusColumn = cursor.getColumnIndexOrThrow(BluetoothShare.STATUS);
@@ -211,6 +227,7 @@ public class BluetoothOppReceiver extends BroadcastReceiver {
                         }
                 }
                 cursor.close();
+                cursor = null;
             }
         } else if (action.equals(Constants.ACTION_COMPLETE_HIDE)) {
             if (V) Log.v(TAG, "Receiver ACTION_COMPLETE_HIDE");
@@ -273,6 +290,12 @@ public class BluetoothOppReceiver extends BroadcastReceiver {
                     toastMsg = context.getString(R.string.download_fail_line1);
                 }
             }
+
+            if (BluetoothOppManager.getInstance(context).zero_length_file) {
+               toastMsg = context.getString(R.string.notification_sent_fail, transInfo.mFileName);
+               BluetoothOppManager.getInstance(context).zero_length_file = false;
+            }
+
             if (V) Log.v(TAG, "Toast msg == " + toastMsg);
             if (toastMsg != null) {
                 Toast.makeText(context, toastMsg, Toast.LENGTH_SHORT).show();

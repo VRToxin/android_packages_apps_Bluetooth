@@ -30,10 +30,12 @@ import com.android.bluetooth.Utils;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
 
 
 final class RemoteDevices {
-    private static final boolean DBG = false;
+    private static final boolean DBG = true;
     private static final String TAG = "BluetoothRemoteDevices";
 
 
@@ -47,11 +49,14 @@ final class RemoteDevices {
 
     private HashMap<BluetoothDevice, DeviceProperties> mDevices;
 
+    private Set<BluetoothDevice> mBleOnDevices;
+
     RemoteDevices(AdapterService service) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mAdapterService = service;
         mSdpTracker = new ArrayList<BluetoothDevice>();
         mDevices = new HashMap<BluetoothDevice, DeviceProperties>();
+        mBleOnDevices = new HashSet<BluetoothDevice>();
     }
 
 
@@ -61,6 +66,9 @@ final class RemoteDevices {
 
         if (mDevices != null)
             mDevices.clear();
+
+        if (mBleOnDevices != null)
+            mBleOnDevices.clear();
     }
 
     @Override
@@ -75,9 +83,11 @@ final class RemoteDevices {
     }
 
     BluetoothDevice getDevice(byte[] address) {
-        for (BluetoothDevice dev : mDevices.keySet()) {
-            if (dev.getAddress().equals(Utils.getAddressStringFromByte(address))) {
-                return dev;
+        synchronized (mDevices) {
+            for (BluetoothDevice dev : mDevices.keySet()) {
+                if (dev.getAddress().equals(Utils.getAddressStringFromByte(address))) {
+                    return dev;
+                }
             }
         }
         return null;
@@ -218,7 +228,7 @@ final class RemoteDevices {
         Intent intent = new Intent(BluetoothDevice.ACTION_UUID);
         intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
         intent.putExtra(BluetoothDevice.EXTRA_UUID, prop == null? null: prop.mUuids);
-        mAdapterService.initProfilePriorities(device, prop.mUuids);
+        mAdapterService.initProfilePriorities(device, prop == null? null: prop.mUuids);
         mAdapterService.sendBroadcast(intent, AdapterService.BLUETOOTH_ADMIN_PERM);
 
         //Remove the outstanding UUID request
@@ -239,7 +249,7 @@ final class RemoteDevices {
             device = getDeviceProperties(bdDevice);
         }
 
-        for (int j = 0; j < types.length; j++) {
+        for (int j = 0; j < types.length && device != null; j++) {
             type = types[j];
             val = values[j];
             if(val.length <= 0)
@@ -342,6 +352,9 @@ final class RemoteDevices {
                 intent = new Intent(BluetoothDevice.ACTION_ACL_CONNECTED);
             } else if (state == BluetoothAdapter.STATE_BLE_ON || state == BluetoothAdapter.STATE_BLE_TURNING_ON) {
                 intent = new Intent(BluetoothAdapter.ACTION_BLE_ACL_CONNECTED);
+                /* also save the device into LE always on device list */
+                debugLog("aclStateChangeCallback: added device to Ble ON list");
+                mBleOnDevices.add(device);
             }
             debugLog("aclStateChangeCallback: State:Connected to Device:" + device);
         } else {
@@ -351,10 +364,14 @@ final class RemoteDevices {
                 intent.putExtra(BluetoothDevice.EXTRA_DEVICE, device);
                 mAdapterService.sendBroadcast(intent, mAdapterService.BLUETOOTH_PERM);
             }
-            if (state == BluetoothAdapter.STATE_ON || state == BluetoothAdapter.STATE_TURNING_OFF) {
-                intent = new Intent(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-            } else if (state == BluetoothAdapter.STATE_BLE_ON || state == BluetoothAdapter.STATE_BLE_TURNING_OFF) {
+            if ((state == BluetoothAdapter.STATE_BLE_ON || state == BluetoothAdapter.STATE_BLE_TURNING_OFF) &&
+                (mBleOnDevices.contains(device))) {
                 intent = new Intent(BluetoothAdapter.ACTION_BLE_ACL_DISCONNECTED);
+                debugLog("aclStateChangeCallback: removing device from Ble Always On List");
+                mBleOnDevices.remove(device);
+            } else {
+                intent = new Intent(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+                debugLog("aclStateChangeCallback: sending ACL disconnected intent");
             }
             debugLog("aclStateChangeCallback: State:DisConnected to Device:" + device);
         }

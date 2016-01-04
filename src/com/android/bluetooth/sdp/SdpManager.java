@@ -27,6 +27,7 @@ import android.os.Message;
 import android.os.ParcelUuid;
 import android.os.Parcelable;
 import android.util.Log;
+import com.android.bluetooth.OolConnManager;
 
 import com.android.bluetooth.Utils;
 import com.android.bluetooth.btservice.AbstractionLayer;
@@ -77,7 +78,7 @@ public class SdpManager {
     static Object mTrackerLock = new Object();
 
     /* The timeout to wait for reply from native. Should never fire. */
-    private static final int SDP_INTENT_DELAY = 6000;
+    private static final int SDP_INTENT_DELAY = 11000;
     private static final int MESSAGE_SDP_INTENT = 2;
 
     // We need a reference to the adapter service, to be able to send intents
@@ -101,6 +102,9 @@ public class SdpManager {
 
     private native int sdpCreateMapMnsRecordNative(String serviceName,
             int rfcommChannel, int l2capPsm, int version, int features);
+
+    private native int sdpCreatePbapPceRecordNative(String serviceName,
+            int version);
 
     private native int sdpCreatePbapPseRecordNative(String serviceName, int rfcommChannel,
             int l2capPsm, int version, int repositories, int features);
@@ -365,6 +369,7 @@ public class SdpManager {
             if(D) Log.d(TAG, "UUID: " + Arrays.toString(uuid));
             if(D) Log.d(TAG, "UUID in parcel: " + ((Utils.byteArrayToUuid(uuid))[0]).toString());
             sendSdpIntent(inst, sdpRecord, moreResults);
+            OolConnManager.saveOppSdpRecord (sdpRecord,inst.getDevice());
         }
     }
 
@@ -558,6 +563,31 @@ public class SdpManager {
         }
         return sdpCreateMapMnsRecordNative(serviceName, rfcommChannel,
                 l2capPsm, version, features);
+    }
+
+    /**
+     * Create a client side Phonebook Access Profile Service Record.
+     * Create the record once, and reuse it for all connections.
+     * If changes to a record is needed remove the old record using {@link removeSdpRecord}
+     * and then create a new one.
+     * @param serviceName   The textual name of the service
+     * @param rfcommChannel The RFCOMM channel that clients can connect to
+     *                      (obtain from BluetoothServerSocket)
+     * @param l2capPsm      The L2CAP PSM channel that clients can connect to
+     *                      (obtain from BluetoothServerSocket)
+     *                      Supply -1 to omit the L2CAP PSM from the record.
+     * @param version       The Profile version number (As specified in the Bluetooth
+     *                      PBAP specification)
+     * @return a handle to the record created. The record can be removed again
+     *          using {@link removeSdpRecord}(). The record is not linked to the
+     *          creation/destruction of BluetoothSockets, hence SDP record cleanup
+     *          is a separate process.
+     */
+    public int createPbapPceRecord(String serviceName, int version) {
+        if(sNativeAvailable == false) {
+            throw new RuntimeException(TAG + " sNativeAvailable == false - native not initialized");
+        }
+        return sdpCreatePbapPceRecordNative(serviceName, version);
     }
 
     /**

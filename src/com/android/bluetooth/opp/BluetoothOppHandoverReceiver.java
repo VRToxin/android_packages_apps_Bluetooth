@@ -28,7 +28,7 @@ import java.util.ArrayList;
 public class BluetoothOppHandoverReceiver extends BroadcastReceiver {
     public static final String TAG ="BluetoothOppHandoverReceiver";
     private static final boolean D = Constants.DEBUG;
-    private static final boolean V = Constants.VERBOSE;
+    private static final boolean V = Log.isLoggable(Constants.TAG, Log.VERBOSE);
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -36,7 +36,7 @@ public class BluetoothOppHandoverReceiver extends BroadcastReceiver {
 
         if (action.equals(Constants.ACTION_HANDOVER_SEND) ||
                action.equals(Constants.ACTION_HANDOVER_SEND_MULTIPLE)) {
-
+            if (V) Log.v(TAG, "Transfer initiated from HANDOVER");
             BluetoothDevice device =
                     (BluetoothDevice)intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             if (device == null) {
