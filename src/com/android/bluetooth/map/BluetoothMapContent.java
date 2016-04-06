@@ -1242,6 +1242,8 @@ public class BluetoothMapContent {
             }
             if (subject != null && subject.length() > subLength) {
                 subject = subject.substring(0, subLength);
+            } else if (subject == null ) {
+                subject = "";
             }
             if (V) Log.d(TAG, "setSubject: " + subject);
             e.setSubject(subject);
@@ -2049,9 +2051,9 @@ public class BluetoothMapContent {
          * should cause all parameters to be included in the message list. */
         if(ap.getParameterMask() == BluetoothMapAppParams.INVALID_VALUE_PARAMETER ||
                 ap.getParameterMask() == 0) {
-            ap.setParameterMask(PARAMETER_MASK_DEFAULT);
+            ap.setParameterMask(PARAMETER_MASK_ALL_ENABLED);
             if (V) Log.v(TAG, "msgListing(): appParameterMask is zero or not present, " +
-                    "changing to default: " + ap.getParameterMask());
+                    "changing to All Enabled by default: " + ap.getParameterMask());
         }
         if (V) Log.v(TAG, "folderElement hasSmsMmsContent = " + folderElement.hasSmsMmsContent() +
                 " folderElement.hasEmailContent = " + folderElement.hasEmailContent() +

@@ -194,6 +194,8 @@ final class HeadsetStateMachine extends StateMachine {
     private boolean mPendingCiev;
     //ConcurrentLinkeQueue is used so that it is threadsafe
     private ConcurrentLinkedQueue<HeadsetCallState> mPendingCallStates = new ConcurrentLinkedQueue<HeadsetCallState>();
+    // Indicates whether audio can be routed to the device.
+    private boolean mAudioRouteAllowed = true;
 
     // mCurrentDevice is the device connected before the state changes
     // mTargetDevice is the device to be connected
@@ -830,11 +832,6 @@ final class HeadsetStateMachine extends StateMachine {
     private class Connected extends State {
         @Override
         public void enter() {
-            // Remove pending connection attempts that were deferred during the pending
-            // state. This is to prevent auto connect attempts from disconnecting
-            // devices that previously successfully connected.
-            // TODO: This needs to check for multiple HFP connections, once supported...
-            removeDeferredMessages(CONNECT);
             Log.d(TAG, "Enter Connected: " + getCurrentMessage().what +
                            ", size: " + mConnectedDevicesList.size());
             // start phone state listener here so that the CIND response as part of SLC can be
@@ -2440,6 +2437,14 @@ final class HeadsetStateMachine extends StateMachine {
         return false;
     }
 
+    public void setAudioRouteAllowed(boolean allowed) {
+        mAudioRouteAllowed = allowed;
+    }
+
+    public boolean getAudioRouteAllowed() {
+        return mAudioRouteAllowed;
+    }
+
     int getAudioState(BluetoothDevice device) {
         synchronized(this) {
             if (mConnectedDevicesList.size() == 0) {
@@ -3119,11 +3124,6 @@ final class HeadsetStateMachine extends StateMachine {
                 }
                 atResponseCodeNative(HeadsetHalConstants.AT_RESPONSE_OK,
                                                        0, getByteAddress(device));
-                removeMessages(DIALING_OUT_TIMEOUT);
-        } else if (callState.mCallState ==
-                HeadsetHalConstants.CALL_STATE_ACTIVE || callState.mCallState
-                == HeadsetHalConstants.CALL_STATE_IDLE) {
-                mDialingOut = false;
         }
 
         /* Set ActiveScoDevice to null when call ends */
@@ -3869,7 +3869,7 @@ final class HeadsetStateMachine extends StateMachine {
     // Accept incoming SCO only when there is active call, VR activated,
     // active VOIP call
     private boolean isScoAcceptable() {
-        return (mVoiceRecognitionStarted || isInCall());
+        return mAudioRouteAllowed && (mVoiceRecognitionStarted || isInCall());
     }
 
     boolean isConnected() {
